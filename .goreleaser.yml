@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: ./cmd/awsctx
+    binary: awsctx
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/yetmike/awsctx/internal/awsctx.Version={{.Version}}
+
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+      - shell/awsctx.sh
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+# Example Homebrew Tap configuration (commented out until you have the repo)
+# brews:
+#   - name: awsctx
+#     repository:
+#       owner: yetmike
+#       name: homebrew-tap
+#     directory: Formula
+#     homepage: "https://github.com/yetmike/awsctx"
+#     description: "Fast AWS profile and region switcher"
+#     install: |
+#       bin.install "awsctx"
+#       bash_completion.install "shell/awsctx.sh" => "awsctx"
+
+# scoops:
+#   - name: awsctx
+#     repository:
+#       owner: yetmike
+#       name: scoop-bucket
+#     homepage: "https://github.com/yetmike/awsctx"
+#     description: "Fast AWS profile and region switcher"
+#     license: MIT
