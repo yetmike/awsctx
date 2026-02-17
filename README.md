@@ -2,6 +2,8 @@
 
 Fast AWS profile and region switcher, inspired by [kubectx](https://github.com/ahmetb/kubectx).
 
+![awsctx demo](assets/demo.gif)
+
 ## Features
 
 - Switch AWS profiles and regions with a single command
