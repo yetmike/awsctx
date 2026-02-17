@@ -38,7 +38,7 @@ go install github.com/yetmike/awsctx/cmd/awsctx@latest
 # Or manual build
 git clone https://github.com/yetmike/awsctx
 cd awsctx
-make install
+sudo make install
 ```
 
 ## Usage

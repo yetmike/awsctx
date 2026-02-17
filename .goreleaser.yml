@@ -45,18 +45,19 @@ changelog:
       - '^docs:'
       - '^test:'
 
-# Example Homebrew Tap configuration (commented out until you have the repo)
-# brews:
-#   - name: awsctx
-#     repository:
-#       owner: yetmike
-#       name: homebrew-tap
-#     directory: Formula
-#     homepage: "https://github.com/yetmike/awsctx"
-#     description: "Fast AWS profile and region switcher"
-#     install: |
-#       bin.install "awsctx"
-#       bash_completion.install "shell/awsctx.sh" => "awsctx"
+brews:
+  - name: awsctx
+    repository:
+      owner: yetmike
+      name: homebrew-tap
+    directory: Formula
+    homepage: "https://github.com/yetmike/awsctx"
+    description: "Fast AWS profile and region switcher"
+    license: MIT
+    install: |
+      bin.install "awsctx"
+      bash_completion.install "shell/awsctx.sh" => "awsctx"
+      zsh_completion.install "shell/awsctx.sh" => "_awsctx"
 
 # scoops:
 #   - name: awsctx
