@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-02-17
+
+### Fixed
+- Slice aliasing bug in `replaceSection()` that corrupted sections below when replacing with more keys than the original.
+
+### Changed
+- Replaced hand-rolled INI parser with `gopkg.in/ini.v1` for reliability.
+
 ## [0.0.2] - 2026-02-13
 
 ### Fixed
