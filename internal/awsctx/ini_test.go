@@ -25,55 +25,55 @@ func TestLoadINI(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config")
 	os.WriteFile(path, []byte(testINI), 0644)
 
-	ini, err := loadINI(path)
+	f, err := loadINI(path)
 	if err != nil {
 		t.Fatalf("loadINI failed: %v", err)
 	}
 
-	if len(ini.lines) != 11 {
-		t.Errorf("expected 11 lines, got %d", len(ini.lines))
+	if !f.hasSection("default") {
+		t.Error("expected default section")
+	}
+	if !f.hasSection("profile dev") {
+		t.Error("expected profile dev section")
+	}
+	if !f.hasSection("profile staging") {
+		t.Error("expected profile staging section")
 	}
 }
 
 func TestLoadINI_MissingFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "nonexistent")
-	ini, err := loadINI(path)
+	f, err := loadINI(path)
 	if err != nil {
 		t.Fatalf("loadINI should not fail for missing file: %v", err)
 	}
-	if len(ini.lines) != 0 {
-		t.Errorf("expected 0 lines, got %d", len(ini.lines))
+	if f.hasSection("default") {
+		t.Error("expected no sections in empty file")
 	}
 }
 
-func TestSectionRange(t *testing.T) {
-	ini := &iniFile{lines: strings.Split(strings.TrimSuffix(testINI, "\n"), "\n")}
+func TestHasSection(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config")
+	os.WriteFile(path, []byte(testINI), 0644)
+	f, _ := loadINI(path)
 
-	tests := []struct {
-		name      string
-		wantStart int
-		wantEnd   int
-		wantFound bool
-	}{
-		{"default", 0, 3, true},
-		{"profile dev", 4, 8, true},
-		{"profile staging", 9, 10, true},
-		{"nonexistent", -1, -1, false},
+	if !f.hasSection("default") {
+		t.Error("expected default section to exist")
 	}
-
-	for _, tt := range tests {
-		start, end, found := ini.sectionRange(tt.name)
-		if found != tt.wantFound || start != tt.wantStart || end != tt.wantEnd {
-			t.Errorf("sectionRange(%q) = (%v, %v, %v), want (%v, %v, %v)",
-				tt.name, start, end, found, tt.wantStart, tt.wantEnd, tt.wantFound)
-		}
+	if !f.hasSection("profile dev") {
+		t.Error("expected profile dev section to exist")
+	}
+	if f.hasSection("nonexistent") {
+		t.Error("expected nonexistent section to not exist")
 	}
 }
 
 func TestGetKeys(t *testing.T) {
-	ini := &iniFile{lines: strings.Split(strings.TrimSuffix(testINI, "\n"), "\n")}
+	path := filepath.Join(t.TempDir(), "config")
+	os.WriteFile(path, []byte(testINI), 0644)
+	f, _ := loadINI(path)
 
-	keys := ini.getKeys("profile dev")
+	keys := f.getKeys("profile dev")
 	want := map[string]string{
 		"region":   "us-west-2",
 		"output":   "yaml",
@@ -85,55 +85,128 @@ func TestGetKeys(t *testing.T) {
 	}
 }
 
+func TestGetKeys_NonexistentSection(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config")
+	os.WriteFile(path, []byte(testINI), 0644)
+	f, _ := loadINI(path)
+
+	keys := f.getKeys("nonexistent")
+	if len(keys) != 0 {
+		t.Errorf("expected empty map, got %v", keys)
+	}
+}
+
 func TestSetKey(t *testing.T) {
-	ini := &iniFile{lines: strings.Split(strings.TrimSuffix(testINI, "\n"), "\n")}
+	path := filepath.Join(t.TempDir(), "config")
+	os.WriteFile(path, []byte(testINI), 0644)
+	f, _ := loadINI(path)
 
 	// Update existing key
-	ini.setKey("default", "region", "us-west-1")
-	if keys := ini.getKeys("default"); keys["region"] != "us-west-1" {
+	f.setKey("default", "region", "us-west-1")
+	if keys := f.getKeys("default"); keys["region"] != "us-west-1" {
 		t.Errorf("expected us-west-1, got %s", keys["region"])
 	}
 
 	// Add new key to existing section
-	ini.setKey("default", "newkey", "newval")
-	if keys := ini.getKeys("default"); keys["newkey"] != "newval" {
+	f.setKey("default", "newkey", "newval")
+	if keys := f.getKeys("default"); keys["newkey"] != "newval" {
 		t.Errorf("expected newval, got %s", keys["newkey"])
 	}
 
 	// Add new section and key
-	ini.setKey("newsection", "k", "v")
-	if keys := ini.getKeys("newsection"); keys["k"] != "v" {
+	f.setKey("newsection", "k", "v")
+	if keys := f.getKeys("newsection"); keys["k"] != "v" {
 		t.Errorf("expected v, got %s", keys["k"])
 	}
 }
 
 func TestReplaceSection(t *testing.T) {
-	ini := &iniFile{lines: strings.Split(strings.TrimSuffix(testINI, "\n"), "\n")}
+	path := filepath.Join(t.TempDir(), "config")
+	os.WriteFile(path, []byte(testINI), 0644)
+	f, _ := loadINI(path)
 
 	newKeys := map[string]string{
 		"region": "eu-central-1",
 		"custom": "value",
 	}
-	ini.replaceSection("default", newKeys)
+	f.replaceSection("default", newKeys)
 
-	keys := ini.getKeys("default")
+	keys := f.getKeys("default")
 	if !reflect.DeepEqual(keys, newKeys) {
 		t.Errorf("replaceSection failed, got %v, want %v", keys, newKeys)
 	}
 
 	// Ensure other sections are still there
-	if !ini.hasSection("profile dev") {
+	if !f.hasSection("profile dev") {
 		t.Error("profile dev section disappeared")
 	}
 }
 
+func TestReplaceSection_MoreKeysThanOriginal(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config")
+	os.WriteFile(path, []byte(testINI), 0644)
+	f, _ := loadINI(path)
+
+	// default has 2 keys; replace with 5 — this triggered the original slice aliasing bug
+	bigKeys := map[string]string{
+		"region":      "ap-southeast-1",
+		"output":      "table",
+		"role_arn":    "arn:aws:iam::999:role/big",
+		"mfa_serial":  "arn:aws:iam::999:mfa/user",
+		"source_profile": "base",
+	}
+	f.replaceSection("default", bigKeys)
+
+	got := f.getKeys("default")
+	if !reflect.DeepEqual(got, bigKeys) {
+		t.Errorf("replaceSection with more keys failed, got %v, want %v", got, bigKeys)
+	}
+
+	// Verify sections below are intact
+	devKeys := f.getKeys("profile dev")
+	wantDev := map[string]string{
+		"region":   "us-west-2",
+		"output":   "yaml",
+		"role_arn": "arn:aws:iam::123456789:role/dev",
+	}
+	if !reflect.DeepEqual(devKeys, wantDev) {
+		t.Errorf("profile dev corrupted after replaceSection, got %v, want %v", devKeys, wantDev)
+	}
+
+	stagingKeys := f.getKeys("profile staging")
+	wantStaging := map[string]string{
+		"region": "eu-west-1",
+	}
+	if !reflect.DeepEqual(stagingKeys, wantStaging) {
+		t.Errorf("profile staging corrupted after replaceSection, got %v, want %v", stagingKeys, wantStaging)
+	}
+}
+
+func TestReplaceSection_NewSection(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config")
+	os.WriteFile(path, []byte(testINI), 0644)
+	f, _ := loadINI(path)
+
+	newKeys := map[string]string{"key": "val"}
+	f.replaceSection("brand-new", newKeys)
+
+	if !f.hasSection("brand-new") {
+		t.Error("new section was not created")
+	}
+	if got := f.getKeys("brand-new"); got["key"] != "val" {
+		t.Errorf("expected val, got %s", got["key"])
+	}
+}
+
 func TestCopySection(t *testing.T) {
-	ini := &iniFile{lines: strings.Split(strings.TrimSuffix(testINI, "\n"), "\n")}
+	path := filepath.Join(t.TempDir(), "config")
+	os.WriteFile(path, []byte(testINI), 0644)
+	f, _ := loadINI(path)
 
-	ini.copySection("profile dev", "default")
+	f.copySection("profile dev", "default")
 
-	devKeys := ini.getKeys("profile dev")
-	defaultKeys := ini.getKeys("default")
+	devKeys := f.getKeys("profile dev")
+	defaultKeys := f.getKeys("default")
 
 	if !reflect.DeepEqual(devKeys, defaultKeys) {
 		t.Errorf("copySection failed, default has %v, dev has %v", defaultKeys, devKeys)
@@ -141,25 +214,64 @@ func TestCopySection(t *testing.T) {
 }
 
 func TestDeleteSection(t *testing.T) {
-	ini := &iniFile{lines: strings.Split(strings.TrimSuffix(testINI, "\n"), "\n")}
+	path := filepath.Join(t.TempDir(), "config")
+	os.WriteFile(path, []byte(testINI), 0644)
+	f, _ := loadINI(path)
 
-	ini.deleteSection("profile staging")
-	if ini.hasSection("profile staging") {
+	f.deleteSection("profile staging")
+	if f.hasSection("profile staging") {
 		t.Error("deleteSection failed, section still exists")
+	}
+
+	// Other sections should still exist
+	if !f.hasSection("default") {
+		t.Error("default section disappeared after deleting staging")
+	}
+	if !f.hasSection("profile dev") {
+		t.Error("profile dev section disappeared after deleting staging")
 	}
 }
 
-func TestSave(t *testing.T) {
+func TestSaveRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config")
-	ini := &iniFile{path: path, lines: strings.Split(strings.TrimSuffix(testINI, "\n"), "\n")}
+	os.WriteFile(path, []byte(testINI), 0644)
 
-	if err := ini.save(); err != nil {
+	f, _ := loadINI(path)
+	if err := f.save(); err != nil {
 		t.Fatalf("save failed: %v", err)
 	}
 
-	data, _ := os.ReadFile(path)
-	if string(data) != testINI {
-		t.Errorf("saved content mismatch\ngot:\n%s\nwant:\n%s", string(data), testINI)
+	// Reload and verify keys survived
+	f2, _ := loadINI(path)
+	for _, sec := range []string{"default", "profile dev", "profile staging"} {
+		if !f2.hasSection(sec) {
+			t.Errorf("section %q lost after save round-trip", sec)
+		}
+	}
+
+	devKeys := f2.getKeys("profile dev")
+	want := map[string]string{
+		"region":   "us-west-2",
+		"output":   "yaml",
+		"role_arn": "arn:aws:iam::123456789:role/dev",
+	}
+	if !reflect.DeepEqual(devKeys, want) {
+		t.Errorf("profile dev keys changed after save, got %v, want %v", devKeys, want)
+	}
+}
+
+func TestSave_CreatesDirectory(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "subdir", "config")
+	f, _ := loadINI(path) // missing file → empty
+	f.setKey("default", "region", "us-east-1")
+
+	if err := f.save(); err != nil {
+		t.Fatalf("save failed: %v", err)
+	}
+
+	f2, _ := loadINI(path)
+	if keys := f2.getKeys("default"); keys["region"] != "us-east-1" {
+		t.Errorf("expected us-east-1 after save to new dir, got %s", keys["region"])
 	}
 }
 
@@ -171,12 +283,28 @@ region = us-east-1
 	path := filepath.Join(t.TempDir(), "config")
 	os.WriteFile(path, []byte(content), 0644)
 
-	ini, _ := loadINI(path)
-	ini.setKey("default", "region", "us-west-2")
-	ini.save()
+	f, _ := loadINI(path)
+	f.setKey("default", "region", "us-west-2")
+	f.save()
 
 	data, _ := os.ReadFile(path)
 	if !strings.Contains(string(data), "# sync with production") {
 		t.Error("comment was lost")
+	}
+}
+
+func TestSave_FilePermissions(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config")
+	f, _ := loadINI(path)
+	f.setKey("default", "region", "us-east-1")
+	f.save()
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat failed: %v", err)
+	}
+	perm := info.Mode().Perm()
+	if perm != 0600 {
+		t.Errorf("expected 0600 permissions, got %04o", perm)
 	}
 }
