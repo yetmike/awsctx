@@ -6,7 +6,7 @@ import (
 	"os/exec"
 )
 
-var Version = "v0.0.6"
+var Version = "v0.0.1"
 
 func Run(args []string) error {
 	if _, err := exec.LookPath("aws"); err != nil {

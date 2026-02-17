@@ -32,7 +32,9 @@ archives:
       - LICENSE
       - README.md
       - src: shell/awsctx.sh
-        dst: awsctx.sh
+        dst: bash_autocomplete
+      - src: shell/awsctx.sh
+        dst: zsh_autocomplete
 
 checksum:
   name_template: "checksums.txt"
@@ -60,8 +62,8 @@ brews:
     license: MIT
     install: |
       bin.install "awsctx"
-      bash_completion.install "awsctx.sh" => "awsctx"
-      zsh_completion.install "awsctx.sh" => "_awsctx"
+      bash_completion.install "bash_autocomplete" => "awsctx"
+      zsh_completion.install "zsh_autocomplete" => "_awsctx"
 
 # scoops:
 #   - name: awsctx
