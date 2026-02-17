@@ -22,21 +22,26 @@ builds:
 
 archives:
   - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    format: tar.gz
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     files:
       - LICENSE
       - README.md
-      - shell/awsctx.sh
+      - src: shell/awsctx.sh
+        dst: bash_autocomplete
+      - src: shell/awsctx.sh
+        dst: zsh_autocomplete
 
 checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
 snapshot:
-  name_template: "{{ .Version }}-next"
+  version_template: "{{ .Version }}-next"
 
 changelog:
   sort: asc
@@ -50,14 +55,15 @@ brews:
     repository:
       owner: yetmike
       name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     directory: Formula
     homepage: "https://github.com/yetmike/awsctx"
     description: "Fast AWS profile and region switcher"
     license: MIT
     install: |
       bin.install "awsctx"
-      bash_completion.install "shell/awsctx.sh" => "awsctx"
-      zsh_completion.install "shell/awsctx.sh" => "_awsctx"
+      bash_completion.install "bash_autocomplete" => "awsctx"
+      zsh_completion.install "zsh_autocomplete" => "_awsctx"
 
 # scoops:
 #   - name: awsctx
