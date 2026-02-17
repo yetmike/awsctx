@@ -31,7 +31,8 @@ archives:
     files:
       - LICENSE
       - README.md
-      - shell/awsctx.sh
+      - src: shell/awsctx.sh
+        dst: awsctx.sh
 
 checksum:
   name_template: "checksums.txt"
@@ -59,8 +60,8 @@ brews:
     license: MIT
     install: |
       bin.install "awsctx"
-      bash_completion.install "shell/awsctx.sh" => "awsctx"
-      zsh_completion.install "shell/awsctx.sh" => "_awsctx"
+      bash_completion.install "awsctx.sh" => "awsctx"
+      zsh_completion.install "awsctx.sh" => "_awsctx"
 
 # scoops:
 #   - name: awsctx
