@@ -169,7 +169,7 @@ func switchProfileInCredentials(name string) error {
 	}
 
 	// If credentials file is empty/missing, skip silently
-	if len(ini.lines) == 0 {
+	if ini.isEmpty() {
 		return nil
 	}
 
