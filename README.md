@@ -19,8 +19,7 @@ Fast AWS profile and region switcher, inspired by [kubectx](https://github.com/a
 ### Homebrew (macOS and Linux)
 
 ```bash
-brew tap yetmike/tap
-brew install awsctx
+brew install yetmike/tap/awsctx
 ```
 
 ### Automatic Install (Linux / macOS)
