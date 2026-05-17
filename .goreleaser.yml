@@ -50,7 +50,7 @@ changelog:
       - '^docs:'
       - '^test:'
 
-homebrew_casks:
+brews:
   - name: awsctx
     repository:
       owner: yetmike
@@ -60,9 +60,10 @@ homebrew_casks:
     homepage: "https://github.com/yetmike/awsctx"
     description: "Fast AWS profile and region switcher"
     license: MIT
-    completions:
-      bash: bash_autocomplete
-      zsh: zsh_autocomplete
+    install: |
+      bin.install "awsctx"
+      bash_completion.install "bash_autocomplete" => "awsctx"
+      zsh_completion.install "zsh_autocomplete" => "_awsctx"
 
 # scoops:
 #   - name: awsctx
